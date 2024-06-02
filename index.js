@@ -25,10 +25,17 @@ async function run() {
     // Connect the client to the server	(optional starting in v4.7)
     // await client.connect();
     const reviewsCollection = client.db("GymHero").collection("review");
+    const newsLettersCollection = client.db("GymHero").collection("newsLetter");
 
     // reviews
     app.get("/review", async (req, res) => {
       const result = await reviewsCollection.find().toArray();
+      res.send(result);
+    });
+    // newsletter /save data in database
+    app.post("/newsLetter", async (req, res) => {
+      const body = req.body;
+      const result = await newsLettersCollection.insertOne(body);
       res.send(result);
     });
     // Send a ping to confirm a successful connection
