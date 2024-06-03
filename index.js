@@ -27,6 +27,9 @@ async function run() {
     const reviewsCollection = client.db("GymHero").collection("review");
     const trainersCollection = client.db("GymHero").collection("trainer");
     const newsLettersCollection = client.db("GymHero").collection("newsLetter");
+    const appliedTrainersCollection = client
+      .db("GymHero")
+      .collection("appliedTrainer");
 
     // reviews
     app.get("/review", async (req, res) => {
@@ -52,6 +55,13 @@ async function run() {
       const id = req.params.id;
       const query = { _id: new ObjectId(id) };
       const result = await trainersCollection.findOne(query);
+      res.send(result);
+    });
+
+    // save applied trainers data
+    app.post("/appliedTrainer", async (req, res) => {
+      const body = req.body;
+      const result = await appliedTrainersCollection.insertOne(body);
       res.send(result);
     });
     // Send a ping to confirm a successful connection
