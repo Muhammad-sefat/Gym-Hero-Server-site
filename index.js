@@ -30,6 +30,7 @@ async function run() {
     const appliedTrainersCollection = client
       .db("GymHero")
       .collection("appliedTrainer");
+    const allClassesCollection = client.db("GymHero").collection("allClass");
 
     // reviews
     app.get("/review", async (req, res) => {
@@ -62,6 +63,12 @@ async function run() {
     app.post("/appliedTrainer", async (req, res) => {
       const body = req.body;
       const result = await appliedTrainersCollection.insertOne(body);
+      res.send(result);
+    });
+
+    // get all classes data
+    app.get("/allClass", async (req, res) => {
+      const result = await allClassesCollection.find().toArray();
       res.send(result);
     });
     // Send a ping to confirm a successful connection
