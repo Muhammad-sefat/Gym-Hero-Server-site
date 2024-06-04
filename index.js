@@ -68,9 +68,36 @@ async function run() {
 
     // get all classes data
     app.get("/allClass", async (req, res) => {
-      const result = await allClassesCollection.find().toArray();
+      const page = parseInt(req.query.page) - 1;
+      const size = parseInt(req.query.size);
+      const filter = req.query.filter;
+      let query = {};
+      if (filter) query = { category: filter };
+      const result = await allClassesCollection
+        .find(query)
+        .skip(size * page)
+        .limit(size)
+        .toArray();
       res.send(result);
     });
+
+    // get All data by filter or query
+    app.get("/class-count", async (req, res) => {
+      const filter = req.query.filter;
+      let query = {};
+      if (filter) query = { category: filter };
+      const count = await allClassesCollection.countDocuments(query);
+      res.send({ count });
+    });
+    // Get single data
+    app.get("/allClass/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await allClassesCollection.findOne(query);
+      console.log(result);
+      res.send(result);
+    });
+
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
     console.log(
