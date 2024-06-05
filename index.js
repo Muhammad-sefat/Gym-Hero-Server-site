@@ -101,8 +101,25 @@ async function run() {
 
     // get all community data
     app.get("/community", async (req, res) => {
-      const result = await communitysCollection.find().toArray();
+      const page = parseInt(req.query.page) - 1;
+      const size = parseInt(req.query.size);
+      const filter = req.query.filter;
+      let query = {};
+      if (filter) query = { category: filter };
+      const result = await communitysCollection
+        .find(query)
+        .skip(size * page)
+        .limit(size)
+        .toArray();
       res.send(result);
+    });
+    // get All data by filter or query
+    app.get("/community-count", async (req, res) => {
+      const filter = req.query.filter;
+      let query = {};
+      if (filter) query = { category: filter };
+      const count = await communitysCollection.countDocuments(query);
+      res.send({ count });
     });
 
     // Send a ping to confirm a successful connection
