@@ -46,6 +46,12 @@ async function run() {
       res.send(result);
     });
 
+    // get all newsletter
+    app.get("/allnewsLetter", async (req, res) => {
+      const result = await newsLettersCollection.find().toArray();
+      res.send(result);
+    });
+
     // get all trainers
     app.get("/trainer", async (req, res) => {
       const result = await trainersCollection.find().toArray();
@@ -113,6 +119,15 @@ async function run() {
         .toArray();
       res.send(result);
     });
+
+    // Get community single data
+    app.get("/community-details/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await communitysCollection.findOne(query);
+      res.send(result);
+    });
+
     // get All data by filter or query
     app.get("/community-count", async (req, res) => {
       const filter = req.query.filter;
