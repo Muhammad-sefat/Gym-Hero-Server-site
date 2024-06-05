@@ -31,6 +31,7 @@ async function run() {
       .db("GymHero")
       .collection("appliedTrainer");
     const allClassesCollection = client.db("GymHero").collection("allClass");
+    const communitysCollection = client.db("GymHero").collection("community");
 
     // reviews
     app.get("/review", async (req, res) => {
@@ -95,6 +96,12 @@ async function run() {
       const query = { _id: new ObjectId(id) };
       const result = await allClassesCollection.findOne(query);
       console.log(result);
+      res.send(result);
+    });
+
+    // get all community data
+    app.get("/community", async (req, res) => {
+      const result = await communitysCollection.find().toArray();
       res.send(result);
     });
 
