@@ -23,7 +23,7 @@ const client = new MongoClient(uri, {
 async function run() {
   try {
     // Connect the client to the server	(optional starting in v4.7)
-    // await client.connect();
+    await client.connect();
     const reviewsCollection = client.db("GymHero").collection("review");
     const trainersCollection = client.db("GymHero").collection("trainer");
     const newsLettersCollection = client.db("GymHero").collection("newsLetter");
@@ -96,12 +96,17 @@ async function run() {
       const count = await allClassesCollection.countDocuments(query);
       res.send({ count });
     });
+
     // Get single data
     app.get("/allClass/:id", async (req, res) => {
       const id = req.params.id;
-      const query = { _id: new ObjectId(id) };
-      const result = await allClassesCollection.findOne(query);
-      console.log(result);
+      const result = await allClassesCollection
+        .aggregate([
+          { $unwind: "$trainers" },
+          { $match: { "trainers._id": id } },
+          { $replaceRoot: { newRoot: "$trainers" } },
+        ])
+        .next();
       res.send(result);
     });
 
