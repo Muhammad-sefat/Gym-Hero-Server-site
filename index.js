@@ -111,6 +111,11 @@ async function run() {
       const result = await appliedTrainersCollection.insertOne(body);
       res.send(result);
     });
+    // get all trainers
+    app.get("/appliedTrainer", async (req, res) => {
+      const result = await appliedTrainersCollection.find().toArray();
+      res.send(result);
+    });
 
     // get all classes data
     app.get("/allClass", async (req, res) => {
