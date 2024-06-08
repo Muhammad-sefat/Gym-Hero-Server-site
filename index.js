@@ -56,6 +56,7 @@ async function run() {
       .collection("appliedTrainer");
     const allClassesCollection = client.db("GymHero").collection("allClass");
     const communitysCollection = client.db("GymHero").collection("community");
+    const usersCollection = client.db("GymHero").collection("user");
 
     // create JWT token
     app.post("/jwt", async (req, res) => {
@@ -184,6 +185,27 @@ async function run() {
       if (filter) query = { category: filter };
       const count = await communitysCollection.countDocuments(query);
       res.send({ count });
+    });
+
+    // save user data in db
+    app.put("/user", async (req, res) => {
+      const user = req.body;
+      const query = { email: user?.email };
+      const isExist = await usersCollection.findOne({ email: user?.email });
+      if (isExist) {
+        return res.send(isExist);
+      }
+
+      const options = { upsert: true };
+
+      const updateDoc = {
+        $set: {
+          ...user,
+          timestamp: Date.now(),
+        },
+      };
+      const result = await usersCollection.updateOne(query, updateDoc, options);
+      res.send(result);
     });
 
     // Send a ping to confirm a successful connection
