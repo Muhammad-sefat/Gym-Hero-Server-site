@@ -184,6 +184,15 @@ async function run() {
       res.send(result);
     });
 
+    // get data by recent post from communitysCollection
+    app.get("/posts", async (req, res) => {
+      const result = await communitysCollection
+        .find({})
+        .sort({ date: -1 })
+        .toArray();
+      console.log(result);
+      res.json(result);
+    });
     // Get community single data
     app.get("/community-details/:id", async (req, res) => {
       const id = req.params.id;
