@@ -177,6 +177,13 @@ async function run() {
       res.send(result);
     });
 
+    // save single data in communityCollection
+    app.post("/community", async (req, res) => {
+      const body = req.body;
+      const result = await communitysCollection.insertOne(body);
+      res.send(result);
+    });
+
     // Get community single data
     app.get("/community-details/:id", async (req, res) => {
       const id = req.params.id;
