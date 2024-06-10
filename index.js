@@ -61,6 +61,7 @@ async function run() {
     const allClassesCollection = client.db("GymHero").collection("allClass");
     const communitysCollection = client.db("GymHero").collection("community");
     const usersCollection = client.db("GymHero").collection("user");
+    const paymentsCollection = client.db("GymHero").collection("payment");
 
     // create JWT token
     app.post("/jwt", async (req, res) => {
@@ -252,6 +253,13 @@ async function run() {
     app.get("/users/role/trainer", async (req, res) => {
       const result = await usersCollection.find({ role: "trainer" }).toArray();
       res.json(result);
+    });
+
+    // save payment data in paymentCollection
+    app.post("/payment", async (req, res) => {
+      const body = req.body;
+      const result = await paymentsCollection.insertOne(body);
+      res.send(result);
     });
 
     // Send a ping to confirm a successful connection
