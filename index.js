@@ -166,6 +166,12 @@ async function run() {
       res.send(result);
     });
 
+    // get classes by popularity
+    app.get("/recommended-class", async (req, res) => {
+      const recommended = await allClassesCollection.find().toArray();
+      res.json(recommended);
+    });
+
     // get all community data
     app.get("/community", async (req, res) => {
       const page = parseInt(req.query.page) - 1;
@@ -240,6 +246,12 @@ async function run() {
       const query = { email: email };
       const result = await usersCollection.findOne(query);
       res.send(result);
+    });
+
+    //Get data by Role base
+    app.get("/users/role/trainer", async (req, res) => {
+      const result = await usersCollection.find({ role: "trainer" }).toArray();
+      res.json(result);
     });
 
     // Send a ping to confirm a successful connection
