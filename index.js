@@ -255,6 +255,18 @@ async function run() {
       res.json(result);
     });
 
+    // Update user data
+    app.put("/api/trainers/:id/update-role", async (req, res) => {
+      const { id } = req.params;
+      const { role } = req.body;
+      const updatedTrainer = await usersCollection.findByIdAndUpdate(
+        id,
+        { role },
+        { new: true }
+      );
+      res.json(updatedTrainer);
+    });
+
     // save payment data in paymentCollection
     app.post("/payment", async (req, res) => {
       const body = req.body;
