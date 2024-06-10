@@ -123,6 +123,19 @@ async function run() {
       res.send(result);
     });
 
+    // Update AppliedTrainer status
+    app.put("/applied/trainers/:id/update-role", async (req, res) => {
+      const id = req.params.id;
+      const { comment, status } = req.body;
+
+      const result = await appliedTrainersCollection.updateOne(
+        { _id: new ObjectId(id) },
+        { $set: { comment, status } }
+      );
+
+      res.send(result);
+    });
+
     // get all classes data
     app.get("/allClass", async (req, res) => {
       const page = parseInt(req.query.page) - 1;
@@ -259,10 +272,9 @@ async function run() {
     app.put("/api/trainers/:id/update-role", async (req, res) => {
       const { id } = req.params;
       const { role } = req.body;
-      const updatedTrainer = await usersCollection.findByIdAndUpdate(
-        id,
-        { role },
-        { new: true }
+      const updatedTrainer = await usersCollection.updateOne(
+        { _id: new ObjectId(id) },
+        { $set: { role } }
       );
       res.json(updatedTrainer);
     });
@@ -275,13 +287,11 @@ async function run() {
     });
 
     // Send a ping to confirm a successful connection
-    // await client.db("admin").command({ ping: 1 });
     console.log(
       "Pinged your deployment. You successfully connected to MongoDB!"
     );
   } finally {
     // Ensures that the client will close when you finish/error
-    // await client.close();
   }
 }
 run().catch(console.dir);
