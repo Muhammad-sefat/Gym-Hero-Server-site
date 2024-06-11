@@ -5,6 +5,7 @@ const app = express();
 const jwt = require("jsonwebtoken");
 require("dotenv").config();
 const cookieParser = require("cookie-parser");
+const stripe = require("stripe")(process.env.PAYMENT_SECRET_KEY);
 const port = process.env.PORT || 5000;
 
 // middleware
@@ -78,6 +79,21 @@ async function run() {
         .send({ token });
     });
 
+    //create-payment-intent
+    app.post("/create-payment-intent", async (req, res) => {
+      const price = req.body.price;
+      const amount = parseFloat(price) * 100;
+      if (!price || amount < 1) return;
+      const { client_secret } = await stripe.paymentIntents.create({
+        amount: amount,
+        currency: "usd",
+        automatic_payment_methods: {
+          enabled: true,
+        },
+      });
+      res.send({ clientSecret: client_secret });
+    });
+
     // reviews
     app.get("/review", async (req, res) => {
       const result = await reviewsCollection.find().toArray();
@@ -138,32 +154,41 @@ async function run() {
 
     // get all classes data
     app.get("/allClass", async (req, res) => {
-      const page = parseInt(req.query.page) || 1;
-      const size = parseInt(req.query.size) || 10;
+      const page = parseInt(req.query.page) - 1;
+      const size = parseInt(req.query.size);
+      const filter = req.query.filter;
       const search = req.query.search || "";
 
-      const query = {
-        name: { $regex: search, $options: "i" },
-      };
+      let query = {};
+      if (filter) query.category = filter;
+      if (search) query.name = { $regex: search, $options: "i" };
 
-      const classes = await allClassesCollection
+      const result = await allClassesCollection
         .find(query)
-        .skip((page - 1) * size)
+        .skip(size * page)
         .limit(size)
         .toArray();
 
       const count = await allClassesCollection.countDocuments(query);
 
-      res.send({ classes, count });
+      res.send({ classes: result, count });
+    });
+
+    // save single data in allClassesCollection
+    app.post("/add-class", async (req, res) => {
+      const body = req.body;
+      const result = await allClassesCollection.insertOne(body);
+      res.send(result);
     });
 
     // get All data by filter or query
     app.get("/class-count", async (req, res) => {
+      const filter = req.query.filter;
       const search = req.query.search || "";
 
-      const query = {
-        name: { $regex: search, $options: "i" },
-      };
+      let query = {};
+      if (filter) query.category = filter;
+      if (search) query.name = { $regex: search, $options: "i" };
 
       const count = await allClassesCollection.countDocuments(query);
       res.send({ count });
@@ -282,7 +307,7 @@ async function run() {
     });
 
     // save payment data in paymentCollection
-    app.post("/payment", async (req, res) => {
+    app.post("/payment", verifyToken, async (req, res) => {
       const body = req.body;
       const result = await paymentsCollection.insertOne(body);
       res.send(result);
