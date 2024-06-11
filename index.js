@@ -81,17 +81,27 @@ async function run() {
 
     //create-payment-intent
     app.post("/create-payment-intent", async (req, res) => {
-      const price = req.body.price;
+      const { price } = req.body;
+      console.log(`Received price: ${price}`);
       const amount = parseFloat(price) * 100;
-      if (!price || amount < 1) return;
-      const { client_secret } = await stripe.paymentIntents.create({
-        amount: amount,
-        currency: "usd",
-        automatic_payment_methods: {
-          enabled: true,
-        },
-      });
-      res.send({ clientSecret: client_secret });
+      if (!price || amount < 1)
+        return res.status(400).send({ error: "Invalid price" });
+
+      try {
+        const { client_secret } = await stripe.paymentIntents.create({
+          amount: amount,
+          currency: "usd",
+          automatic_payment_methods: {
+            enabled: true,
+          },
+        });
+        console.log(
+          `Created payment intent with client secret: ${client_secret}`
+        );
+        res.send({ clientSecret: client_secret });
+      } catch (error) {
+        res.status(500).send({ error: error.message });
+      }
     });
 
     // reviews
@@ -144,12 +154,21 @@ async function run() {
       const id = req.params.id;
       const { comment, status } = req.body;
 
-      const result = await appliedTrainersCollection.updateOne(
+      const updateResult = await appliedTrainersCollection.updateOne(
         { _id: new ObjectId(id) },
         { $set: { comment, status } }
       );
 
-      res.send(result);
+      if (updateResult.modifiedCount === 1) {
+        const deleteResult = await appliedTrainersCollection.deleteOne({
+          _id: new ObjectId(id),
+        });
+        res.send(deleteResult);
+      } else {
+        res
+          .status(500)
+          .send({ error: "Failed to delete the trainer after update" });
+      }
     });
 
     // get all classes data
@@ -307,7 +326,7 @@ async function run() {
     });
 
     // save payment data in paymentCollection
-    app.post("/payment", verifyToken, async (req, res) => {
+    app.post("/payment", async (req, res) => {
       const body = req.body;
       const result = await paymentsCollection.insertOne(body);
       res.send(result);
