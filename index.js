@@ -138,31 +138,33 @@ async function run() {
 
     // get all classes data
     app.get("/allClass", async (req, res) => {
-      const page = parseInt(req.query.page) - 1;
-      const size = parseInt(req.query.size);
-      const filter = req.query.filter;
-      let query = {};
-      if (filter) query = { category: filter };
-      const result = await allClassesCollection
+      const page = parseInt(req.query.page) || 1;
+      const size = parseInt(req.query.size) || 10;
+      const search = req.query.search || "";
+
+      const query = {
+        name: { $regex: search, $options: "i" },
+      };
+
+      const classes = await allClassesCollection
         .find(query)
-        .skip(size * page)
+        .skip((page - 1) * size)
         .limit(size)
         .toArray();
-      res.send(result);
-    });
 
-    // save single data in allClassesCollection
-    app.post("/add-class", async (req, res) => {
-      const body = req.body;
-      const result = await allClassesCollection.insertOne(body);
-      res.send(result);
+      const count = await allClassesCollection.countDocuments(query);
+
+      res.send({ classes, count });
     });
 
     // get All data by filter or query
     app.get("/class-count", async (req, res) => {
-      const filter = req.query.filter;
-      let query = {};
-      if (filter) query = { category: filter };
+      const search = req.query.search || "";
+
+      const query = {
+        name: { $regex: search, $options: "i" },
+      };
+
       const count = await allClassesCollection.countDocuments(query);
       res.send({ count });
     });
