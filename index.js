@@ -86,7 +86,6 @@ async function run() {
       const amount = parseFloat(price) * 100;
       if (!price || amount < 1)
         return res.status(400).send({ error: "Invalid price" });
-
       try {
         const { client_secret } = await stripe.paymentIntents.create({
           amount: amount,
@@ -168,7 +167,7 @@ async function run() {
       }
     });
 
-    // get all classes data
+    // get All Class data
     app.get("/allClass", async (req, res) => {
       const page = parseInt(req.query.page) - 1;
       const size = parseInt(req.query.size);
@@ -179,25 +178,24 @@ async function run() {
       if (filter) query.category = filter;
       if (search) query.name = { $regex: search, $options: "i" };
 
-      const result = await allClassesCollection
-        .find(query)
-        .skip(size * page)
-        .limit(size)
-        .toArray();
+      try {
+        const result = await allClassesCollection
+          .find(query)
+          .skip(size * page)
+          .limit(size)
+          .toArray();
 
-      const count = await allClassesCollection.countDocuments(query);
+        const count = await allClassesCollection.countDocuments(query);
 
-      res.send({ classes: result, count });
+        res.send({ classes: result, count });
+      } catch (error) {
+        res
+          .status(500)
+          .send({ error: "An error occurred while fetching classes." });
+      }
     });
 
-    // save single data in allClassesCollection
-    app.post("/add-class", async (req, res) => {
-      const body = req.body;
-      const result = await allClassesCollection.insertOne(body);
-      res.send(result);
-    });
-
-    // get All data by filter or query
+    // Get All data by filter or query
     app.get("/class-count", async (req, res) => {
       const filter = req.query.filter;
       const search = req.query.search || "";
@@ -206,8 +204,21 @@ async function run() {
       if (filter) query.category = filter;
       if (search) query.name = { $regex: search, $options: "i" };
 
-      const count = await allClassesCollection.countDocuments(query);
-      res.send({ count });
+      try {
+        const count = await allClassesCollection.countDocuments(query);
+        res.send({ count });
+      } catch (error) {
+        res
+          .status(500)
+          .send({ error: "An error occurred while counting classes." });
+      }
+    });
+
+    // save single data in allClassesCollection
+    app.post("/add-class", async (req, res) => {
+      const body = req.body;
+      const result = await allClassesCollection.insertOne(body);
+      res.send(result);
     });
 
     // Get single data
@@ -333,6 +344,37 @@ async function run() {
       const newSlot = req.body;
       const result = await slotsCollection.insertOne(newSlot);
       res.status(201).send(result);
+    });
+
+    // get total Price
+    app.get("/transactions-summary", async (req, res) => {
+      try {
+        const transactions = await paymentsCollection.find().toArray();
+        let totalPrice = 0;
+        transactions.forEach((transaction) => {
+          const priceString = transaction.price;
+          const match = priceString.match(/\$([\d,.]+)/);
+          if (match) {
+            const price = parseFloat(match[1].replace(/,/g, ""));
+            totalPrice += price;
+          }
+        });
+        const recentTransactions = await paymentsCollection
+          .find()
+          .sort({ date: -1 })
+          .limit(6)
+          .project({ transactionId: 1, name: 1, email: 1, _id: 0 })
+          .toArray();
+
+        res.send({
+          totalPrice,
+          recentTransactions,
+        });
+      } catch (error) {
+        res.status(500).send({
+          error: "An error occurred while fetching transactionId summary.",
+        });
+      }
     });
 
     // Send a ping to confirm a successful connection
