@@ -63,6 +63,7 @@ async function run() {
     const communitysCollection = client.db("GymHero").collection("community");
     const usersCollection = client.db("GymHero").collection("user");
     const paymentsCollection = client.db("GymHero").collection("payment");
+    const slotsCollection = client.db("GymHero").collection("slots");
 
     // create JWT token
     app.post("/jwt", async (req, res) => {
@@ -330,6 +331,13 @@ async function run() {
       const body = req.body;
       const result = await paymentsCollection.insertOne(body);
       res.send(result);
+    });
+
+    // add new slot
+    app.post("/slots", async (req, res) => {
+      const newSlot = req.body;
+      const result = await slotsCollection.insertOne(newSlot);
+      res.status(201).send(result);
     });
 
     // Send a ping to confirm a successful connection
