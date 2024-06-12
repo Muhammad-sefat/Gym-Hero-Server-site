@@ -83,7 +83,6 @@ async function run() {
     //create-payment-intent
     app.post("/create-payment-intent", async (req, res) => {
       const { price } = req.body;
-      console.log(`Received price: ${price}`);
       const amount = parseFloat(price) * 100;
       if (!price || amount < 1)
         return res.status(400).send({ error: "Invalid price" });
@@ -96,9 +95,6 @@ async function run() {
             enabled: true,
           },
         });
-        console.log(
-          `Created payment intent with client secret: ${client_secret}`
-        );
         res.send({ clientSecret: client_secret });
       } catch (error) {
         res.status(500).send({ error: error.message });
@@ -261,7 +257,6 @@ async function run() {
         .find({})
         .sort({ date: -1 })
         .toArray();
-      console.log(result);
       res.json(result);
     });
     // Get community single data
