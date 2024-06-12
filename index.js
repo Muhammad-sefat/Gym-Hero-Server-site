@@ -295,7 +295,6 @@ async function run() {
       if (isExist) {
         return res.send(isExist);
       }
-
       const options = { upsert: true };
 
       const updateDoc = {
@@ -372,7 +371,7 @@ async function run() {
         });
       } catch (error) {
         res.status(500).send({
-          error: "An error occurred while fetching transactionId summary.",
+          error: "An error occurred while fetching transaction summary.",
         });
       }
     });
