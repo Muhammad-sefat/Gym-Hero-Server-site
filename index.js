@@ -11,12 +11,18 @@ const port = process.env.PORT || 5000;
 // middleware
 const corsOptions = {
   origin: [
-    "http://localhost:5173",
     "https://gym-hero-client.web.app",
     "https://gym-hero-client.firebaseapp.com",
   ],
   credentials: true,
-  optionSuccessStatus: 200,
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+  allowedHeaders: [
+    "Origin",
+    "X-Requested-With",
+    "Content-Type",
+    "Accept",
+    "Authorization",
+  ],
 };
 app.use(cors(corsOptions));
 app.use(express.json());
