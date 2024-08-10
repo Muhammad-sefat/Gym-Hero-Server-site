@@ -306,6 +306,7 @@ async function run() {
       const result = await usersCollection.updateOne(query, updateDoc, options);
       res.send(result);
     });
+
     // get user data by email from usersCollection
     app.get("/user/:email", async (req, res) => {
       const email = req.params.email;
