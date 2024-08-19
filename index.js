@@ -1,28 +1,22 @@
+require("dotenv").config();
 const express = require("express");
-const cors = require("cors");
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const app = express();
-const jwt = require("jsonwebtoken");
-require("dotenv").config();
+const cors = require("cors");
 const cookieParser = require("cookie-parser");
 const stripe = require("stripe")(process.env.PAYMENT_SECRET_KEY);
+const jwt = require("jsonwebtoken");
 const port = process.env.PORT || 5000;
 
 // middleware
 const corsOptions = {
   origin: [
+    "http://localhost:5173",
     "https://gym-hero-client.web.app",
     "https://gym-hero-client.firebaseapp.com",
   ],
   credentials: true,
-  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-  allowedHeaders: [
-    "Origin",
-    "X-Requested-With",
-    "Content-Type",
-    "Accept",
-    "Authorization",
-  ],
+  optionsSuccessStatus: 200,
 };
 app.use(cors(corsOptions));
 app.use(express.json());
@@ -58,7 +52,7 @@ const client = new MongoClient(uri, {
 async function run() {
   try {
     // Connect the client to the server	(optional starting in v4.7)
-    // await client.connect();
+    await client.connect();
     const reviewsCollection = client.db("GymHero").collection("review");
     const trainersCollection = client.db("GymHero").collection("trainer");
     const newsLettersCollection = client.db("GymHero").collection("newsLetter");
@@ -381,6 +375,11 @@ async function run() {
           error: "An error occurred while fetching transaction summary.",
         });
       }
+    });
+
+    app.get("/paidMember", async (req, res) => {
+      const transactions = await paymentsCollection.find().toArray();
+      res.send(transactions);
     });
 
     // Send a ping to confirm a successful connection
