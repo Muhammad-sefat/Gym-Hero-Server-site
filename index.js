@@ -52,7 +52,7 @@ const client = new MongoClient(uri, {
 async function run() {
   try {
     // Connect the client to the server	(optional starting in v4.7)
-    // await client.connect();
+    await client.connect();
     const reviewsCollection = client.db("GymHero").collection("review");
     const trainersCollection = client.db("GymHero").collection("trainer");
     const newsLettersCollection = client.db("GymHero").collection("newsLetter");
@@ -150,20 +150,45 @@ async function run() {
       const id = req.params.id;
       const { comment, status } = req.body;
 
-      const updateResult = await appliedTrainersCollection.updateOne(
-        { _id: new ObjectId(id) },
-        { $set: { comment, status } }
-      );
-
-      if (updateResult.modifiedCount === 1) {
-        const deleteResult = await appliedTrainersCollection.deleteOne({
+      try {
+        const trainer = await appliedTrainersCollection.findOne({
           _id: new ObjectId(id),
         });
-        res.send(deleteResult);
-      } else {
-        res
-          .status(500)
-          .send({ error: "Failed to delete the trainer after update" });
+
+        if (!trainer) {
+          return res.status(404).send({ error: "Trainer not found" });
+        }
+
+        const updatedTrainer = {
+          ...trainer,
+          comment,
+          status,
+        };
+
+        const insertResult = await trainersCollection.insertOne(updatedTrainer);
+
+        if (insertResult.acknowledged) {
+          const deleteResult = await appliedTrainersCollection.deleteOne({
+            _id: new ObjectId(id),
+          });
+
+          if (deleteResult.deletedCount === 1) {
+            return res.send({
+              success: true,
+              message: "Trainer moved successfully!",
+            });
+          } else {
+            return res.status(500).send({
+              error: "Failed to delete trainer from appliedTrainersCollection",
+            });
+          }
+        } else {
+          return res.status(500).send({
+            error: "Failed to insert trainer into trainersCollection",
+          });
+        }
+      } catch (error) {
+        res.status(500).send({ error: error.message });
       }
     });
 
@@ -317,7 +342,9 @@ async function run() {
 
     //Get data by Role base
     app.get("/users/role/trainer", async (req, res) => {
-      const result = await usersCollection.find({ role: "trainer" }).toArray();
+      const result = await trainersCollection
+        .find({ status: "trainer" })
+        .toArray();
       res.json(result);
     });
 
@@ -325,7 +352,7 @@ async function run() {
     app.put("/api/trainers/:id/update-role", async (req, res) => {
       const { id } = req.params;
       const { role } = req.body;
-      const updatedTrainer = await usersCollection.updateOne(
+      const updatedTrainer = await trainersCollection.updateOne(
         { _id: new ObjectId(id) },
         { $set: { role } }
       );
