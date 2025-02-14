@@ -2,21 +2,20 @@ require("dotenv").config();
 const express = require("express");
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const app = express();
+
 const cors = require("cors");
 const cookieParser = require("cookie-parser");
 const stripe = require("stripe")(process.env.PAYMENT_SECRET_KEY);
 const jwt = require("jsonwebtoken");
+
 const port = process.env.PORT || 5000;
 
 // middleware
 const corsOptions = {
-  origin: [
-    "http://localhost:5173",
-    "https://gym-hero-client.web.app",
-    "https://gym-hero-client.firebaseapp.com",
-  ],
+  origin: "*",
   credentials: true,
   optionsSuccessStatus: 200,
+  allowedHeaders: ["Content-Type", "Authorization"],
 };
 app.use(cors(corsOptions));
 app.use(express.json());
@@ -52,7 +51,7 @@ const client = new MongoClient(uri, {
 async function run() {
   try {
     // Connect the client to the server	(optional starting in v4.7)
-    await client.connect();
+    // await client.connect();
     const reviewsCollection = client.db("GymHero").collection("review");
     const trainersCollection = client.db("GymHero").collection("trainer");
     const newsLettersCollection = client.db("GymHero").collection("newsLetter");
@@ -159,34 +158,55 @@ async function run() {
           return res.status(404).send({ error: "Trainer not found" });
         }
 
+        // Ensure role and email exist
+        if (!trainer.email) {
+          return res.status(400).send({ error: "Trainer email is missing" });
+        }
+
         const updatedTrainer = {
           ...trainer,
           comment,
           status,
+          assignedAt: new Date(),
         };
 
         const insertResult = await trainersCollection.insertOne(updatedTrainer);
 
-        if (insertResult.acknowledged) {
-          const deleteResult = await appliedTrainersCollection.deleteOne({
-            _id: new ObjectId(id),
-          });
-
-          if (deleteResult.deletedCount === 1) {
-            return res.send({
-              success: true,
-              message: "Trainer moved successfully!",
-            });
-          } else {
-            return res.status(500).send({
-              error: "Failed to delete trainer from appliedTrainersCollection",
-            });
-          }
-        } else {
+        if (!insertResult.acknowledged) {
           return res.status(500).send({
             error: "Failed to insert trainer into trainersCollection",
           });
         }
+
+        // Ensure role is assigned
+        const userUpdate = {
+          email: trainer.email,
+          status: trainer.role || "trainer",
+          assignedAt: new Date(),
+        };
+
+        // Update user role in usersCollection
+        await usersCollection.updateOne(
+          { email: trainer.email.trim() },
+          { $set: userUpdate },
+          { upsert: true }
+        );
+
+        // Delete trainer from appliedTrainersCollection
+        const deleteResult = await appliedTrainersCollection.deleteOne({
+          _id: new ObjectId(id),
+        });
+
+        if (deleteResult.deletedCount !== 1) {
+          return res.status(500).send({
+            error: "Failed to delete trainer from appliedTrainersCollection",
+          });
+        }
+
+        return res.send({
+          success: true,
+          message: "Trainer moved successfully and role updated!",
+        });
       } catch (error) {
         res.status(500).send({ error: error.message });
       }
@@ -342,7 +362,7 @@ async function run() {
 
     //Get data by Role base
     app.get("/users/role/trainer", async (req, res) => {
-      const result = await trainersCollection
+      const result = await usersCollection
         .find({ status: "trainer" })
         .toArray();
       res.json(result);
@@ -351,10 +371,10 @@ async function run() {
     // Update user data
     app.put("/api/trainers/:id/update-role", async (req, res) => {
       const { id } = req.params;
-      const { role } = req.body;
+      const { status } = req.body;
       const updatedTrainer = await trainersCollection.updateOne(
         { _id: new ObjectId(id) },
-        { $set: { role } }
+        { $set: { status } }
       );
       res.json(updatedTrainer);
     });
@@ -371,6 +391,14 @@ async function run() {
       const newSlot = req.body;
       const result = await slotsCollection.insertOne(newSlot);
       res.status(201).send(result);
+    });
+
+    // get user data by email from slotsCollection
+    app.get("/slots/:email", async (req, res) => {
+      const email = req.params.email;
+      const query = { email: email };
+      const result = await slotsCollection.find(query).toArray();
+      res.send(result);
     });
 
     // get total Price
@@ -414,7 +442,6 @@ async function run() {
       "Pinged your deployment. You successfully connected to MongoDB!"
     );
   } finally {
-    // Ensures that the client will close when you finish/error
   }
 }
 run().catch(console.dir);
